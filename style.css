@@ -140,13 +140,13 @@ strong, b {
     width: 100%;
     z-index: 1000;
     transition: all var(--transition-fast);
-    padding: 1.5rem 0;
+    padding: 0.8rem 0;
     background-color: transparent;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .header.sticky {
-    padding: 1rem 0;
+    padding: 0.5rem 0;
     background-color: rgba(233, 232, 232, 0.98);
     box-shadow: 0 4px 20px var(--shadow-light);
     border-bottom: 1px solid rgba(7, 68, 93, 0.05);
@@ -165,29 +165,29 @@ strong, b {
 }
 
 .nav-logo-img {
-    height: 35px;
+    height: 80px; 
     width: auto;
+    transition: all var(--transition-fast);
 }
 
-.nav-logo-text {
-    font-family: var(--font-heading);
-    font-size: 1.1rem;
-    color: var(--bg-white); /* White over Hero */
-    letter-spacing: 1px;
-    display: flex;
-    flex-direction: column;
-    transition: color var(--transition-fast);
+.logo .logo-white {
+    display: block !important;
 }
 
-.nav-logo-text span {
-    font-size: 0.55rem;
-    letter-spacing: 3px;
-    opacity: 0.7;
-    margin-top: 2px;
+.logo .logo-colored {
+    display: none !important;
 }
 
-.header.sticky .nav-logo-text {
-    color: var(--primary);
+.header.sticky .logo .logo-white {
+    display: none !important;
+}
+
+.header.sticky .logo .logo-colored {
+    display: block !important;
+}
+
+.header.sticky .nav-logo-img {
+    height: 60px;
 }
 
 .nav-menu ul {
@@ -301,15 +301,15 @@ strong, b {
 }
 
 .hero-logo-img {
-    height: 60px; /* Tamanho elegante para o logo */
+    height: 140px; /* Increased for vertical logo impact */
     width: auto;
-    filter: brightness(1.1); /* Sutil realce no fundo escuro */
+    filter: brightness(1.1);
 }
 
 .hero-premium-title {
-    font-size: 3.2rem;
-    margin-bottom: 3.5rem; /* Ajuste para dar ar mais limpo e direto */
-    line-height: 1.2;
+    font-size: 2.7rem; /* Reduzido para maior elegância e legibilidade */
+    margin-bottom: 2.5rem; 
+    line-height: 1.25;
     color: var(--bg-white);
     text-transform: uppercase;
 }
@@ -634,7 +634,7 @@ strong, b {
     flex-wrap: nowrap;
     overflow-x: auto;
     scroll-behavior: smooth;
-    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch; /* Momentum scrolling for mobile */
     gap: 1.5rem;
     padding: 0 5vw;
     padding-bottom: 2.5rem;
@@ -705,7 +705,6 @@ strong, b {
 
 .solution-card {
     flex: 0 0 340px;
-    scroll-snap-align: center;
     position: relative;
     height: 420px;
     border-radius: 4px;
@@ -1196,24 +1195,8 @@ strong, b {
 }
 
 .footer-logo {
-    height: 50px;
+    height: 100px;
     width: auto;
-}
-
-.brand-text-minimal {
-    font-family: var(--font-heading);
-    font-size: 1.1rem;
-    letter-spacing: 2px;
-    display: flex;
-    flex-direction: column;
-    color: var(--primary);
-}
-
-.brand-text-minimal span {
-    font-size: 0.6rem;
-    letter-spacing: 4px;
-    opacity: 0.7;
-    margin-top: 2px;
 }
 
 .footer-contact-info {
@@ -1378,7 +1361,7 @@ strong, b {
     }
 
     .hero-premium-title {
-        font-size: 2.2rem;
+        font-size: 1.75rem;
     }
 
     .hero-premium-subtitle {

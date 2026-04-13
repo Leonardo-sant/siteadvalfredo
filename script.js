@@ -98,86 +98,77 @@ document.addEventListener('DOMContentLoaded', () => {
     const progressFill = document.getElementById('carouselProgress');
 
     if (solutionsTrack && prevBtn && nextBtn && progressFill) {
-        const cards = Array.from(solutionsTrack.querySelectorAll('.solution-card'));
-        const cardCount = cards.length;
-        const cloneCount = 4; // Clone 4 to ensure enough visual coverage for seamless jumping
-
-        // 1. Clone cards for infinite effect
-        // Append first cards to end
-        for(let i=0; i < cloneCount; i++) {
-            const clone = cards[i].cloneNode(true);
-            solutionsTrack.appendChild(clone);
-        }
-        // Prepend last cards to beginning
-        for(let i = cardCount - 1; i >= cardCount - cloneCount; i--) {
-            const clone = cards[i].cloneNode(true);
-            solutionsTrack.prepend(clone);
-        }
-
-        // 2. Constants for measurement
+        // Native, Elegant Carousel without cloning bugs
         const getCardWidth = () => {
             const card = solutionsTrack.querySelector('.solution-card');
             return card ? card.offsetWidth + 24 : 364; // card width + gap
         };
 
-        // 3. Initial Position: Scroll past clones at the start
-        const setInitialPosition = () => {
-            const offset = getCardWidth() * cloneCount;
-            solutionsTrack.scrollLeft = offset;
-        };
-
-        // Wait for images/layout to settle
-        window.addEventListener('load', setInitialPosition);
-        setTimeout(setInitialPosition, 500);
-
-        // 4. Navigation Buttons
+        // Navigation Buttons
         nextBtn.addEventListener('click', () => {
-            solutionsTrack.scrollBy({ left: getCardWidth(), behavior: 'smooth' });
+            const maxScroll = solutionsTrack.scrollWidth - solutionsTrack.clientWidth;
+            // If already at the very end (with a 10px margin of error) => Loop back to Start
+            if (solutionsTrack.scrollLeft >= maxScroll - 10) {
+                solutionsTrack.scrollTo({ left: 0, behavior: 'smooth' });
+            } else {
+                solutionsTrack.scrollBy({ left: getCardWidth(), behavior: 'smooth' });
+            }
         });
 
         prevBtn.addEventListener('click', () => {
-            solutionsTrack.scrollBy({ left: -getCardWidth(), behavior: 'smooth' });
+            // If already at the very beginning => Loop to End
+            if (solutionsTrack.scrollLeft <= 10) {
+                const maxScroll = solutionsTrack.scrollWidth - solutionsTrack.clientWidth;
+                solutionsTrack.scrollTo({ left: maxScroll, behavior: 'smooth' });
+            } else {
+                solutionsTrack.scrollBy({ left: -getCardWidth(), behavior: 'smooth' });
+            }
         });
 
-        // 5. Seamless Loop & Progress Update
-        let isJumping = false;
+        // Elegant Progress Update
         const updateCarousel = () => {
-            if (isJumping) return;
-
-            const scrollLeft = solutionsTrack.scrollLeft;
-            const cardWidth = getCardWidth();
-            const startOffset = cardWidth * cloneCount;
-            const endOffset = cardWidth * cardCount;
-
-            // Infinite Jump Check (Logical Start/End)
-            if (scrollLeft <= 5) { // At the clones-start
-                isJumping = true;
-                const oldSnap = solutionsTrack.style.scrollSnapType;
-                solutionsTrack.style.scrollSnapType = 'none'; // Disable snap for jump
-                solutionsTrack.scrollLeft = endOffset;
-                setTimeout(() => {
-                    solutionsTrack.style.scrollSnapType = oldSnap;
-                    isJumping = false;
-                }, 50);
-            } else if (scrollLeft >= (endOffset + startOffset - 20)) { // At the clones-end
-                isJumping = true;
-                const oldSnap = solutionsTrack.style.scrollSnapType;
-                solutionsTrack.style.scrollSnapType = 'none';
-                solutionsTrack.scrollLeft = startOffset;
-                setTimeout(() => {
-                    solutionsTrack.style.scrollSnapType = oldSnap;
-                    isJumping = false;
-                }, 50);
+            const maxScroll = solutionsTrack.scrollWidth - solutionsTrack.clientWidth;
+            let percentage = 0;
+            
+            if (maxScroll > 0) {
+                percentage = (solutionsTrack.scrollLeft / maxScroll) * 100;
             }
-
-            // Update Progress Bar (Based on real items index)
-            const relativeScroll = scrollLeft - startOffset;
-            const maxScroll = cardWidth * (cardCount - 1);
-            const percentage = (relativeScroll / maxScroll) * 100;
+            
+            // Start progress bar at 10% minimum for better visual feedback
             progressFill.style.width = `${Math.max(10, Math.min(percentage, 100))}%`;
         };
 
         solutionsTrack.addEventListener('scroll', updateCarousel);
-        window.addEventListener('resize', setInitialPosition);
+        
+        // Setup initial progress
+        updateCarousel();
+    }
+
+    // 6. Contact Form to WhatsApp Integration
+    const contactForm = document.querySelector('.contact-form');
+    if (contactForm) {
+        contactForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            // Get form values
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const phone = document.getElementById('phone').value;
+            const message = document.getElementById('message').value;
+            
+            // Format WhatsApp Message
+            const whatsappNumber = "558587804612";
+            const text = `*Nova Mensagem de Contato - Site*\n\n` +
+                         `*Nome:* ${name}\n` +
+                         `*E-mail:* ${email}\n` +
+                         `*WhatsApp:* ${phone}\n\n` +
+                         `*Necessidade Jurídica:*\n${message}`;
+            
+            const encodedText = encodeURIComponent(text);
+            const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedText}`;
+            
+            // Open in new tab
+            window.open(whatsappUrl, '_blank');
+        });
     }
 });

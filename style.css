@@ -621,7 +621,7 @@ strong, b {
     stroke: #07445D;
 }
 
-/* Soluções Jurídicas Carousel */
+/* Soluções Jurídicas Carousel — Transform-based (GPU only) */
 .solutions-carousel-wrapper {
     position: relative;
     width: 100vw;
@@ -629,21 +629,29 @@ strong, b {
     padding: 2rem 0;
 }
 
-.solutions-grid {
-    display: flex;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scroll-behavior: smooth;
-    -webkit-overflow-scrolling: touch; /* Momentum scrolling for mobile */
-    gap: 1.5rem;
-    padding: 0 5vw;
-    padding-bottom: 2.5rem;
-    -ms-overflow-style: none; /* IE and Edge */
-    scrollbar-width: none; /* Firefox */
+/* Viewport clips the overflow — NO native scroll */
+.solutions-viewport {
+    overflow: hidden;
+    width: 100%;
+    padding: 1rem 0 2rem;
 }
 
-.solutions-grid::-webkit-scrollbar {
-    display: none;
+/* Track slides via transform: translate3d (compositor-only, zero layout) */
+.solutions-track {
+    display: flex;
+    gap: 1.5rem;
+    padding: 0 5vw;
+    will-change: transform;
+    cursor: grab;
+    -webkit-user-select: none;
+    user-select: none;
+    /* Smooth transition for button clicks — disabled during drag via JS */
+    transition: transform 0.28s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.solutions-track.is-dragging {
+    transition: none;
+    cursor: grabbing;
 }
 
 .carousel-nav {
@@ -698,9 +706,9 @@ strong, b {
 .progress-fill {
     height: 100%;
     background-color: var(--primary);
-    width: 10%;
+    width: 5%;
     border-radius: 2px;
-    transition: width 0.3s ease;
+    transition: width 0.35s ease;
 }
 
 .solution-card {
@@ -710,19 +718,25 @@ strong, b {
     border-radius: 4px;
     overflow: hidden;
     cursor: pointer;
-    box-shadow: 0 4px 20px rgba(7, 68, 93, 0.08); /* Sombra elegante, usando a cor do primário */
+    box-shadow: 0 4px 20px rgba(7, 68, 93, 0.08);
+    /* Isolate each card — prevents repaint cascade */
+    contain: layout style paint;
 }
 
+/* Image as <img> with object-fit (enables loading=lazy) */
 .solution-bg {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-size: cover;
-    background-position: center;
-    transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    object-fit: cover;
+    object-position: center;
     z-index: 1;
+    /* GPU layer for hover zoom — only this property animates */
+    will-change: transform;
+    transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    pointer-events: none;
 }
 
 .solution-overlay {
@@ -733,8 +747,8 @@ strong, b {
     height: 100%;
     /* Dark elegant overlay */
     background: linear-gradient(to top, rgba(7, 68, 93, 0.95) 0%, rgba(7, 68, 93, 0.4) 60%, rgba(7, 68, 93, 0.1) 100%);
-    transition: background var(--transition-fast);
     z-index: 2;
+    pointer-events: none;
 }
 
 .solution-content {
@@ -748,6 +762,7 @@ strong, b {
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
+    pointer-events: none;
 }
 
 .solution-card h3 {
@@ -769,20 +784,16 @@ strong, b {
     color: var(--bg-white);
 }
 
-/* Hover effects */
-.solution-card:hover .solution-bg {
+/* Hover effects — only when NOT dragging */
+.solutions-track:not(.is-dragging) .solution-card:hover .solution-bg {
     transform: scale(1.08);
 }
 
-.solution-card:hover .solution-overlay {
-    background: linear-gradient(to top, rgba(7, 68, 93, 0.98) 0%, rgba(7, 68, 93, 0.6) 60%, rgba(7, 68, 93, 0.3) 100%);
-}
-
-.solution-card:hover h3 {
+.solutions-track:not(.is-dragging) .solution-card:hover h3 {
     transform: translateY(0);
 }
 
-.solution-card:hover p {
+.solutions-track:not(.is-dragging) .solution-card:hover p {
     opacity: 0.9;
     transform: translateY(0);
     transition-delay: 0.1s;
@@ -978,12 +989,18 @@ strong, b {
     left: 0;
     width: 85%;
     height: 90%;
-    background-image: url('https://images.unsplash.com/photo-1505664177941-10c0eaffafce?q=80&w=1000&auto=format&fit=crop');
-    background-size: cover;
-    background-position: center;
     border-radius: 2px;
     box-shadow: 0 25px 50px -12px var(--shadow-medium);
     transition: transform var(--transition-slow);
+    overflow: hidden;
+}
+
+.editorial-img-large img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
 }
 
 .editorial-img-small {
@@ -992,13 +1009,19 @@ strong, b {
     right: 0;
     width: 55%;
     height: 45%;
-    background-image: url('https://images.unsplash.com/photo-1556761175-5973fc0f32b7?q=80&w=800&auto=format&fit=crop');
-    background-size: cover;
-    background-position: center;
     border-radius: 2px;
     box-shadow: 0 30px 60px -15px var(--shadow-medium);
-    border: 8px solid var(--bg-light); /* Cutout effect blending with background */
+    border: 8px solid var(--bg-light);
     transition: transform var(--transition-slow);
+    overflow: hidden;
+}
+
+.editorial-img-small img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
 }
 
 .editorial-visual:hover .editorial-img-large {
@@ -1279,36 +1302,147 @@ strong, b {
     animation: float-subtle 10s ease-in-out infinite;
 }
 
-/* Media Queries */
+/* ============================================================
+   RESPONSIVE — Tablet Landscape (≤1024px)
+   ============================================================ */
 @media (max-width: 1024px) {
-    .about-premium-container, 
-    .editorial-container,
-    .contact-container,
-    .methodology-container,
+    .container {
+        padding: 0 1.5rem;
+    }
+    
+    .section-padding {
+        padding: 4.5rem 0;
+    }
+
+    /* Hero */
+    .hero-premium-container {
+        grid-template-columns: 1fr;
+        padding-top: 1rem;
+        gap: 2rem;
+    }
+
+    .hero-premium-content {
+        text-align: center;
+        align-items: center;
+    }
+
+    .hero-brand {
+        justify-content: center;
+    }
+
+    .hero-premium-title {
+        font-size: 2.2rem;
+    }
+
+    .hero-cta-wrapper {
+        align-items: center;
+    }
+
+    .hero-premium-visual {
+        min-height: 450px;
+    }
+
+    .advocate-image-wrapper {
+        position: relative;
+        bottom: 0;
+        height: auto;
+    }
+
+    .advocate-img {
+        max-height: 450px;
+        width: auto;
+    }
+
+    /* Features Strip */
     .features-strip-container {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2.5rem;
+    }
+
+    /* About */
+    .about-premium-container {
         grid-template-columns: 1fr;
         gap: 3.5rem;
     }
-    
+
     .advocate-frame {
-        max-width: 100%;
-        margin-bottom: 2rem;
+        max-width: 400px;
+        margin: 0 auto;
+    }
+
+    .about-premium-content {
+        text-align: center;
     }
 
     .advocate-name {
         font-size: 2.5rem;
     }
 
-    .about-card {
-        bottom: -20px;
-        left: 20px;
-        right: 20px;
+    .institutional-badge {
+        margin: 0 auto 1.5rem;
+    }
+
+    .advocate-cta {
+        display: flex;
+        justify-content: center;
+    }
+
+    /* Methodology */
+    .methodology-container {
+        grid-template-columns: 1fr;
+        gap: 3rem;
+    }
+
+    .methodology-title {
+        text-align: center;
+    }
+
+    .methodology-visual {
+        order: -1;
+    }
+
+    .contracts-img {
+        width: 90%;
+        transform: perspective(1200px) rotateY(-4deg) rotateX(1deg);
+    }
+
+    /* Editorial */
+    .editorial-container {
+        grid-template-columns: 1fr;
+        gap: 3rem;
     }
 
     .editorial-visual {
-        height: 450px;
+        height: 400px;
+        max-width: 500px;
+        margin: 0 auto;
+        width: 100%;
     }
 
+    /* Contact */
+    .contact-container {
+        grid-template-columns: 1fr;
+        gap: 3rem;
+    }
+
+    .contact-info {
+        text-align: center;
+    }
+
+    .title-line {
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .whatsapp-btn {
+        justify-content: center;
+    }
+
+    .contact-details {
+        text-align: left;
+    }
+
+    /* Footer */
     .footer-top {
         flex-direction: column;
         gap: 2.5rem;
@@ -1324,30 +1458,23 @@ strong, b {
         text-align: center;
         align-items: center;
     }
-    
-    .hero-premium-container {
-        grid-template-columns: 1fr;
-        padding-top: 1rem;
-        gap: 2rem;
-    }
-    
-    .hero-premium-visual {
-        min-height: 450px;
-    }
-    
-    .advocate-image-wrapper {
-        position: relative;
-        bottom: 0;
-        height: auto;
-    }
-    
-    .advocate-img {
-        max-height: 450px;
-        width: auto;
+
+    /* Carousel */
+    .solution-card {
+        flex: 0 0 300px;
+        height: 400px;
     }
 }
 
+/* ============================================================
+   RESPONSIVE — Tablet Portrait (≤768px)
+   ============================================================ */
 @media (max-width: 768px) {
+    .section-padding {
+        padding: 3.5rem 0;
+    }
+
+    /* Header / Nav */
     .nav-menu {
         display: none;
     }
@@ -1360,87 +1487,501 @@ strong, b {
         display: block;
     }
 
-    .hero-premium-title {
-        font-size: 1.75rem;
+    .mobile-toggle span {
+        background-color: var(--bg-white);
     }
 
-    .hero-premium-subtitle {
-        font-size: 1rem;
+    .header.sticky .mobile-toggle span {
+        background-color: var(--primary);
     }
-    
+
+    .nav-logo-img {
+        height: 60px;
+    }
+
+    .header.sticky .nav-logo-img {
+        height: 50px;
+    }
+
+    /* Hero */
+    .hero-premium {
+        min-height: auto;
+        padding-top: 80px;
+        padding-bottom: 2rem;
+    }
+
+    .hero-premium-container {
+        padding: 2rem 1rem;
+    }
+
+    .hero-logo-img {
+        height: 100px;
+    }
+
+    .hero-premium-title {
+        font-size: 1.65rem;
+        margin-bottom: 2rem;
+    }
+
+    .btn-hero-cta {
+        padding: 1rem 2rem;
+        font-size: 0.8rem;
+    }
+
     .hero-premium-visual {
-        min-height: 400px;
+        min-height: 350px;
     }
-    
+
     .advocate-img {
-        max-height: 400px;
+        max-height: 350px;
     }
-    
+
     .hero-badge {
-        font-size: 0.75rem;
-        padding: 0.6rem 1rem;
+        font-size: 0.7rem;
+        padding: 0.5rem 0.9rem;
         backdrop-filter: blur(8px);
         -webkit-backdrop-filter: blur(8px);
     }
-    
+
     .badge-icon {
         width: 16px;
         height: 16px;
     }
-    
-    .badge-1 { top: 10%; right: -5%; }
-    .badge-2 { top: 35%; left: -5%; }
-    .badge-3 { bottom: 15%; right: -5%; }
-    .badge-4 { bottom: -5%; left: 5%; }
-    
-    .cta-headline {
-        font-size: 1.8rem;
+
+    .badge-3 { top: 15%; right: 0; }
+    .badge-4 { bottom: 15%; left: 0; }
+
+    /* Features Strip */
+    .features-strip {
+        padding: 3rem 0;
     }
 
-    .footer-container {
+    .features-strip-container {
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+    }
+
+    .feature-item h3 {
+        font-size: 0.75rem;
+    }
+
+    .feature-item p {
+        font-size: 0.75rem;
+    }
+
+    .feature-icon-circle {
+        width: 50px;
+        height: 50px;
+        margin-bottom: 1.2rem;
+    }
+
+    .feature-icon-circle svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    /* Section Titles */
+    .section-title {
+        font-size: 1.7rem;
+    }
+
+    .section-subtitle {
+        font-size: 0.95rem;
+        margin-bottom: 2.5rem;
+    }
+
+    /* About */
+    .advocate-name {
+        font-size: 2.2rem;
+    }
+
+    .advocate-bio p {
+        font-size: 1rem;
+    }
+
+    .btn-premium-wa {
+        padding: 1.2rem 2rem;
+        font-size: 0.85rem;
+        gap: 1.2rem;
+    }
+
+    .wa-icon {
+        width: 24px;
+        height: 24px;
+    }
+
+    /* Methodology */
+    .methodology-title {
+        font-size: 1.7rem;
+        margin-bottom: 2rem;
+    }
+
+    .method_step_card {
+        padding: 1.5rem;
+    }
+
+    .method_step_card h3 {
+        font-size: 1rem;
+    }
+
+    .method_step_card p {
+        font-size: 0.85rem;
+    }
+
+    .contracts-img {
+        width: 100%;
+        transform: none;
+    }
+
+    .methodology-visual:hover .contracts-img {
+        transform: scale(1.03);
+    }
+
+    /* Editorial */
+    .editorial-visual {
+        height: 350px;
+    }
+
+    .editorial-title {
+        font-size: 1.5rem;
+    }
+
+    .editorial-img-large {
+        width: 80%;
+        height: 85%;
+    }
+    
+    .editorial-img-small {
+        width: 60%;
+        height: 45%;
+        bottom: 0;
+    }
+
+    /* Carousel */
+    .solution-card {
+        flex: 0 0 280px;
+        height: 380px;
+    }
+
+    .solutions-track {
+        gap: 1rem;
+        padding: 0 4vw;
+    }
+
+    .carousel-nav {
+        width: 40px;
+        height: 40px;
+    }
+
+    .carousel-nav svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    .prev-btn { left: 1vw; }
+    .next-btn { right: 1vw; }
+
+    /* Show text by default on mobile (no hover) */
+    .solution-card h3 {
+        transform: translateY(0);
+    }
+
+    .solution-card p {
+        opacity: 0.85;
+        transform: translateY(0);
+    }
+
+    .solution-overlay {
+        background: linear-gradient(to top, rgba(7, 68, 93, 0.92) 0%, rgba(7, 68, 93, 0.5) 55%, rgba(7, 68, 93, 0.1) 100%);
+    }
+
+    /* Contact */
+    .contact-form-wrapper {
+        padding: 2rem;
+    }
+
+    .whatsapp-btn {
+        font-size: 0.95rem;
+        padding: 1rem 1.5rem;
+    }
+
+    /* Footer */
+    .footer-logo {
+        height: 80px;
+    }
+
+    .footer-minimal {
+        padding-top: 3rem;
+    }
+}
+
+/* ============================================================
+   RESPONSIVE — Mobile (≤480px)
+   ============================================================ */
+@media (max-width: 480px) {
+    .container {
+        padding: 0 1rem;
+    }
+
+    .section-padding {
+        padding: 3rem 0;
+    }
+
+    /* Hero */
+    .hero-premium {
+        padding-top: 70px;
+    }
+
+    .hero-premium-container {
+        padding: 1.5rem 0.5rem;
+    }
+
+    .hero-logo-img {
+        height: 80px;
+    }
+
+    .hero-premium-title {
+        font-size: 1.35rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .btn-hero-cta {
+        padding: 0.9rem 1.6rem;
+        font-size: 0.75rem;
+        gap: 0.6rem;
+        width: 100%;
+        justify-content: center;
+    }
+
+    .hero-premium-visual {
+        min-height: 280px;
+    }
+
+    .advocate-img {
+        max-height: 280px;
+    }
+
+    .hero-badge {
+        font-size: 0.65rem;
+        padding: 0.4rem 0.75rem;
+    }
+
+    .badge-3 { top: 10%; right: -2%; }
+    .badge-4 { bottom: 20%; left: -2%; }
+
+    /* Features Strip */
+    .features-strip {
+        padding: 2.5rem 0;
+    }
+
+    .features-strip-container {
         grid-template-columns: 1fr;
-        gap: 2.5rem;
+        gap: 2rem;
+    }
+
+    .feature-item {
+        flex-direction: row;
+        text-align: left;
+        gap: 1.2rem;
+    }
+
+    .feature-icon-circle {
+        margin-bottom: 0;
+        flex-shrink: 0;
+        width: 48px;
+        height: 48px;
+    }
+
+    .feature-item h3 {
+        font-size: 0.8rem;
+        margin-bottom: 0.3rem;
+    }
+
+    .feature-item p {
+        max-width: 100%;
+    }
+
+    /* Section Titles */
+    .section-title {
+        font-size: 1.4rem;
+    }
+
+    .section-subtitle {
+        font-size: 0.85rem;
+        margin-bottom: 2rem;
+    }
+
+    /* About */
+    .advocate-frame {
+        max-width: 100%;
+        border-radius: 8px;
+    }
+
+    .advocate-name {
+        font-size: 1.8rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .advocate-bio p {
+        font-size: 0.9rem;
+        line-height: 1.7;
+        margin-bottom: 1.2rem;
+    }
+
+    .btn-premium-wa {
+        width: 100%;
+        justify-content: center;
+        padding: 1.1rem 1.5rem;
+        font-size: 0.8rem;
+        gap: 1rem;
+    }
+
+    .wa-icon {
+        width: 22px;
+        height: 22px;
+    }
+
+    /* Methodology */
+    .methodology-title {
+        font-size: 1.4rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .method_step_card {
+        padding: 1.2rem;
+    }
+
+    .method_step_card h3 {
+        font-size: 0.95rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .method_step_card p {
+        font-size: 0.8rem;
+        line-height: 1.5;
+    }
+
+    .methodology-bg-logo {
+        display: none;
+    }
+
+    /* Editorial */
+    .editorial-visual {
+        height: 280px;
+    }
+
+    .editorial-title {
+        font-size: 1.3rem;
+        line-height: 1.35;
+    }
+
+    .editorial-bullets li {
+        gap: 1rem;
+    }
+
+    .editorial-bullets p {
+        font-size: 0.85rem;
     }
 
     .editorial-img-large {
         width: 85%;
         height: 80%;
     }
-    
+
     .editorial-img-small {
-        width: 65%;
+        width: 55%;
         height: 45%;
-        bottom: 0;
-    }
-    
-    .section-title {
-        font-size: 1.8rem;
-    }
-    
-    .editorial-title {
-        font-size: 1.6rem;
+        border-width: 5px;
     }
 
-    /* Soluções Jurídicas Mobile Adjustments */
+    /* Carousel */
+    .solutions-carousel-wrapper {
+        padding: 1rem 0;
+    }
+
     .solution-card {
-        flex: 0 0 85%;
-        height: 400px;
+        flex: 0 0 85vw;
+        height: 350px;
     }
-    
+
+    .solutions-track {
+        padding: 0 3vw;
+        gap: 0.8rem;
+    }
+
     .carousel-nav {
-        display: none; /* Hide arrows on mobile, swipe is natural */
+        display: none;
     }
-    
+
+    .solution-content {
+        padding: 1.5rem 1.2rem;
+    }
+
     .solution-card h3 {
-        transform: translateY(0);
+        font-size: 1.1rem;
     }
-    
+
     .solution-card p {
-        opacity: 0.9;
-        transform: translateY(0);
+        font-size: 0.8rem;
     }
-    
-    .solution-overlay {
-        background: linear-gradient(to top, rgba(7, 68, 93, 0.9) 0%, rgba(7, 68, 93, 0.5) 60%, rgba(7, 68, 93, 0.1) 100%);
+
+    /* Contact */
+    .contact-text {
+        font-size: 0.9rem;
+        margin-bottom: 2rem;
+    }
+
+    .contact-form-wrapper {
+        padding: 1.5rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.2rem;
+    }
+
+    .form-group label {
+        font-size: 0.75rem;
+    }
+
+    .form-group input,
+    .form-group textarea {
+        padding: 0.8rem;
+        font-size: 0.85rem;
+    }
+
+    .btn-block {
+        padding: 1rem;
+        font-size: 0.85rem;
+    }
+
+    .whatsapp-btn {
+        width: 100%;
+        justify-content: center;
+        font-size: 0.9rem;
+    }
+
+    .contact-details p {
+        font-size: 0.85rem;
+    }
+
+    /* Footer */
+    .footer-logo {
+        height: 65px;
+    }
+
+    .footer-minimal {
+        padding-top: 2rem;
+    }
+
+    .footer-email {
+        font-size: 0.8rem;
+    }
+
+    .footer-bottom-minimal {
+        font-size: 0.65rem;
+    }
+
+    .footer-socials {
+        gap: 1rem;
     }
 }

@@ -91,57 +91,154 @@ document.addEventListener('DOMContentLoaded', () => {
         animationObserver.observe(el);
     });
 
-    // 5. Solutions Horizontal Carousel
-    const solutionsTrack = document.getElementById('solutionsTrack');
+    // 5. Solutions Carousel — Pure Transform Engine (GPU only, zero layout)
+    const track = document.getElementById('solutionsTrack');
     const prevBtn = document.querySelector('.prev-btn');
     const nextBtn = document.querySelector('.next-btn');
     const progressFill = document.getElementById('carouselProgress');
 
-    if (solutionsTrack && prevBtn && nextBtn && progressFill) {
-        // Native, Elegant Carousel without cloning bugs
-        const getCardWidth = () => {
-            const card = solutionsTrack.querySelector('.solution-card');
-            return card ? card.offsetWidth + 24 : 364; // card width + gap
-        };
+    if (track && prevBtn && nextBtn && progressFill) {
+        const cards = track.querySelectorAll('.solution-card');
+        let pos = 0;        // current translateX offset (positive = scrolled right)
+        let cardW = 0;      // card width
+        let gap = 0;        // gap between cards
+        let step = 0;       // cardW + gap
+        let maxPos = 0;     // maximum translateX
+        let viewW = 0;      // viewport width
 
-        // Navigation Buttons
-        nextBtn.addEventListener('click', () => {
-            const maxScroll = solutionsTrack.scrollWidth - solutionsTrack.clientWidth;
-            // If already at the very end (with a 10px margin of error) => Loop back to Start
-            if (solutionsTrack.scrollLeft >= maxScroll - 10) {
-                solutionsTrack.scrollTo({ left: 0, behavior: 'smooth' });
+        // Measure dimensions (call on load & resize)
+        function measure() {
+            if (!cards.length) return;
+            cardW = cards[0].offsetWidth;
+            gap = parseFloat(getComputedStyle(track).gap) || 24;
+            step = cardW + gap;
+            viewW = track.parentElement.offsetWidth;
+            const trackW = cards.length * step - gap;
+            maxPos = Math.max(0, trackW - viewW + parseFloat(getComputedStyle(track).paddingLeft) * 2);
+            // Clamp current position
+            pos = Math.max(0, Math.min(pos, maxPos));
+            applyTransform(true);
+        }
+
+        // Apply transform (animate = use CSS transition)
+        function applyTransform(animate) {
+            if (animate) {
+                track.classList.remove('is-dragging');
             } else {
-                solutionsTrack.scrollBy({ left: getCardWidth(), behavior: 'smooth' });
+                track.classList.add('is-dragging');
             }
+            track.style.transform = `translate3d(${-pos}px, 0, 0)`;
+            updateProgress();
+        }
+
+        function updateProgress() {
+            const pct = maxPos > 0 ? (pos / maxPos) * 100 : 0;
+            progressFill.style.width = `${Math.max(5, Math.min(pct, 100))}%`;
+        }
+
+        // --- Button Navigation ---
+        nextBtn.addEventListener('click', () => {
+            if (pos >= maxPos - 5) {
+                pos = 0;  // Loop to start
+            } else {
+                pos = Math.min(pos + step, maxPos);
+            }
+            applyTransform(true);
         });
 
         prevBtn.addEventListener('click', () => {
-            // If already at the very beginning => Loop to End
-            if (solutionsTrack.scrollLeft <= 10) {
-                const maxScroll = solutionsTrack.scrollWidth - solutionsTrack.clientWidth;
-                solutionsTrack.scrollTo({ left: maxScroll, behavior: 'smooth' });
+            if (pos <= 5) {
+                pos = maxPos;  // Loop to end
             } else {
-                solutionsTrack.scrollBy({ left: -getCardWidth(), behavior: 'smooth' });
+                pos = Math.max(pos - step, 0);
             }
+            applyTransform(true);
         });
 
-        // Elegant Progress Update
-        const updateCarousel = () => {
-            const maxScroll = solutionsTrack.scrollWidth - solutionsTrack.clientWidth;
-            let percentage = 0;
-            
-            if (maxScroll > 0) {
-                percentage = (solutionsTrack.scrollLeft / maxScroll) * 100;
-            }
-            
-            // Start progress bar at 10% minimum for better visual feedback
-            progressFill.style.width = `${Math.max(10, Math.min(percentage, 100))}%`;
-        };
+        // --- Drag / Swipe (Pointer Events — mouse + touch) ---
+        let dragging = false;
+        let startX = 0;
+        let startPos = 0;
+        let lastX = 0;
+        let lastT = 0;
+        let vel = 0;
+        let momentumRAF = null;
 
-        solutionsTrack.addEventListener('scroll', updateCarousel);
-        
-        // Setup initial progress
-        updateCarousel();
+        track.addEventListener('pointerdown', (e) => {
+            // Cancel any running momentum
+            if (momentumRAF) { cancelAnimationFrame(momentumRAF); momentumRAF = null; }
+            dragging = true;
+            startX = e.clientX;
+            startPos = pos;
+            lastX = e.clientX;
+            lastT = performance.now();
+            vel = 0;
+            track.setPointerCapture(e.pointerId);
+            applyTransform(false); // Disable CSS transition during drag
+        });
+
+        track.addEventListener('pointermove', (e) => {
+            if (!dragging) return;
+            const dx = startX - e.clientX;
+            pos = Math.max(0, Math.min(startPos + dx, maxPos));
+            track.style.transform = `translate3d(${-pos}px, 0, 0)`;
+
+            // Track velocity
+            const now = performance.now();
+            const dt = now - lastT;
+            if (dt > 0) {
+                vel = (lastX - e.clientX) / dt; // px/ms
+            }
+            lastX = e.clientX;
+            lastT = now;
+            updateProgress();
+        });
+
+        function endDrag() {
+            if (!dragging) return;
+            dragging = false;
+
+            // Apply momentum then snap
+            const friction = 0.93;
+            const applyMomentum = () => {
+                if (Math.abs(vel) < 0.08) {
+                    // Snap to nearest card boundary
+                    pos = Math.round(pos / step) * step;
+                    pos = Math.max(0, Math.min(pos, maxPos));
+                    applyTransform(true);
+                    return;
+                }
+                pos += vel * 16;
+                pos = Math.max(0, Math.min(pos, maxPos));
+                vel *= friction;
+                track.style.transform = `translate3d(${-pos}px, 0, 0)`;
+                updateProgress();
+
+                // If hit bounds, stop momentum
+                if (pos <= 0 || pos >= maxPos) {
+                    pos = Math.max(0, Math.min(pos, maxPos));
+                    applyTransform(true);
+                    return;
+                }
+                momentumRAF = requestAnimationFrame(applyMomentum);
+            };
+            momentumRAF = requestAnimationFrame(applyMomentum);
+        }
+
+        track.addEventListener('pointerup', endDrag);
+        track.addEventListener('pointercancel', endDrag);
+
+        // Block click events if the user dragged
+        track.addEventListener('click', (e) => {
+            if (Math.abs(pos - startPos) > 5) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        }, true);
+
+        // Init & resize
+        measure();
+        window.addEventListener('resize', () => { measure(); });
     }
 
     // 6. Contact Form to WhatsApp Integration

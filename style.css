@@ -30,6 +30,8 @@
 html {
     scroll-behavior: smooth;
     font-size: 16px;
+    overflow-x: hidden;
+    width: 100%;
 }
 
 body.theme-light {
@@ -37,6 +39,9 @@ body.theme-light {
     background-color: var(--bg-light);
     color: var(--primary);
     line-height: 1.6;
+    width: 100%;
+    margin: 0;
+    padding: 0;
     overflow-x: hidden;
     font-weight: 300; /* Sora Light */
 }
@@ -81,6 +86,12 @@ strong, b {
 
 .text-center {
     text-align: center;
+}
+
+section, header, footer {
+    width: 100%;
+    display: block;
+    position: relative;
 }
 
 /* Buttons */
@@ -251,6 +262,7 @@ strong, b {
     background-color: #041f2b; /* Versão mais escura e sofisticada de #07445D */
     overflow: hidden;
     color: var(--bg-white);
+    width: 100%;
 }
 
 .hero-premium-bg {
@@ -417,8 +429,8 @@ strong, b {
     height: 100%;
 }
 
-.badge-3 { top: 25%; right: -5%; }
-.badge-4 { bottom: 20%; left: -5%; }
+.badge-3 { top: 25%; right: 5%; }
+.badge-4 { bottom: 20%; left: 5%; }
 
 /* Text Utils */
 .section-title {
@@ -624,8 +636,7 @@ strong, b {
 /* Soluções Jurídicas Carousel — Transform-based (GPU only) */
 .solutions-carousel-wrapper {
     position: relative;
-    width: 100vw;
-    margin-left: calc(-50vw + 50%);
+    width: 100%;
     padding: 2rem 0;
 }
 
@@ -803,6 +814,7 @@ strong, b {
 .methodology {
     background-color: #041f2b;
     color: var(--bg-white);
+    overflow: hidden;
 }
 
 .methodology-container {
@@ -1309,6 +1321,19 @@ strong, b {
     .container {
         padding: 0 1.5rem;
     }
+
+    .nav-menu ul {
+        gap: 1.5rem;
+    }
+    
+    .nav-menu a {
+        font-size: 0.75rem;
+    }
+
+    .btn.cta-header {
+        padding: 0.6rem 1.2rem;
+        font-size: 0.75rem;
+    }
     
     .section-padding {
         padding: 4.5rem 0;
@@ -1514,8 +1539,12 @@ strong, b {
         padding: 2rem 1rem;
     }
 
+    .hero-brand {
+        display: none;
+    }
+
     .hero-logo-img {
-        height: 100px;
+        display: none;
     }
 
     .hero-premium-title {
@@ -1766,8 +1795,8 @@ strong, b {
         padding: 0.4rem 0.75rem;
     }
 
-    .badge-3 { top: 10%; right: -2%; }
-    .badge-4 { bottom: 20%; left: -2%; }
+    .badge-3 { top: 10%; right: 2%; }
+    .badge-4 { bottom: 20%; left: 2%; }
 
     /* Features Strip */
     .features-strip {
@@ -1983,5 +2012,8 @@ strong, b {
 
     .footer-socials {
         gap: 1rem;
+    }
+    .hero-brand {
+        display: none;
     }
 }
